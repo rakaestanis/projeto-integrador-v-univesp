@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 
 # Configuração da Página
-st.title("Controle de Presença - E.E. Prof. Anísio Carneiro") [cite: 9, 17]
+st.title("Controle de Presença")
 st.subheader("Captura de QR Code e Busca Ativa") [cite: 43]
 
 # Carregar Banco de Dados
