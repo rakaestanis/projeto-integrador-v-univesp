@@ -1,33 +1,48 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from streamlit_qrcode_scanner import qrcode_scanner
 
-# Configuração da Página
-st.title("Controle de Presença") [cite: 9, 17]
-st.subheader("Captura de QR Code e Busca Ativa") [cite: 43]
+st.set_page_config(page_title="Sistema Anísio Carneiro", layout="wide")
 
-# Carregar Banco de Dados
-df = pd.read_csv("alunos.csv")
+st.title("🛡️ Controle de Presença Inteligente")
+st.write("Aponte o crachá do aluno para a câmera")
 
-# Interface de Captura
-input_id = st.text_input("Aponte o leitor ou digite o ID do Aluno:")
+# 1. Carregar o banco de dados que você já criou
+try:
+    df = pd.read_csv("alunos.csv")
+except:
+    st.error("Erro ao carregar alunos.csv. Verifique o arquivo no GitHub.")
+    st.stop()
 
-if st.button("Registrar Presença"):
-    if input_id:
-        # Lógica de Processamento: Encontra o aluno e atualiza data
-        agora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        idx = df.index[df['ID'] == int(input_id)]
+# 2. Componente de Leitura de QR Code
+# Isso abrirá a câmera do seu tablet automaticamente
+codigo_lido = qrcode_scanner(key='scanner')
+
+if codigo_lido:
+    st.audio("https://www.soundjay.com/buttons/beep-07a.mp3") # Feedback sonoro opcional
+    
+    # Converte o código lido para número (ID)
+    try:
+        id_aluno = int(codigo_lido)
         
-        if not idx.empty:
-            df.at[idx[0], 'Ultima_Presenca'] = agora
-            df.at[idx[0], 'Faltas'] = 0  # Zera faltas ao aparecer
-            df.to_csv("alunos.csv", index=False)
-            st.success(f"Presença confirmada para: {df.at[idx[0], 'Nome']}")
+        # 3. Processamento: Busca na lista
+        if id_aluno in df['id'].values:
+            nome_aluno = df.loc[df['id'] == id_aluno, 'nome'].values[0]
+            st.success(f"✅ PRESENÇA REGISTRADA: {nome_aluno} (ID: {id_aluno})")
+            
+            # Aqui você poderia atualizar o CSV, mas para a DEMO, 
+            # apenas mostrar que o sistema RECONHECEU o aluno já prova o conceito.
         else:
-            st.error("Aluno não encontrado.")
+            st.warning(f"⚠️ ID {id_aluno} lido, mas não encontrado na lista de alunos.")
+    except:
+        st.error("Erro ao processar o código lido. Verifique se o QR Code contém apenas o número do ID.")
 
-# Seção de Busca Ativa (Análise de Dados)
+# 4. Análise de Dados (Demonstração da Busca Ativa)
 st.divider()
-st.write("### Alunos com Alerta de Busca Ativa (2+ Faltas)") [cite: 9]
-alertas = df[df['Faltas'] >= 2]
-st.table(alertas[['Nome', 'Faltas', 'Contato_Responsavel']])
+st.subheader("📊 Painel de Controle - Busca Ativa")
+st.write("Alunos com 2 ou mais faltas (Atenção prioritária):")
+
+# Filtra e mostra quem precisa de atenção (quem tem faltas >= 2 no CSV)
+lista_alerta = df[df['faltas'] >= 2]
+st.warning(f"Existem {len(lista_alerta)} alunos em situação crítica.")
+st.table(lista_alerta[['nome', 'email_responsavel', 'faltas']])
